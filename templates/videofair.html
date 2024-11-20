@@ -1,0 +1,117 @@
+<link href="https://vjs.zencdn.net/7.10.2/video-js.css" rel="stylesheet" />
+<script src="https://vjs.zencdn.net/7.10.2/video.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/videojs-hotkeys@0.2.26/videojs.hotkeys.min.js"></script>
+
+<style>
+    body {
+        background: #1e1e1e;
+        color: #fff;
+        font-family: Arial, sans-serif;
+    }
+
+    .video-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin: 50px auto;
+        max-width: 960px;
+        padding: 20px;
+        background: #2c2c2c;
+        border-radius: 15px;
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .video-js {
+        width: 100%;
+        height: 534px;
+        border-radius: 8px;
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        background-color: #000;
+    }
+
+    .vjs-control-bar {
+        background: rgba(0, 0, 0, 0.6);
+    }
+
+    .vjs-big-play-button {
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .vjs-big-play-button:hover {
+        transform: scale(1.1);
+    }
+
+    .video-js .vjs-control-bar button:hover {
+        color: #ff0000;
+    }
+
+    .custom-controls {
+        display: flex;
+        margin-top: 10px;
+    }
+
+    .custom-button {
+        background-color: #ff5722;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 8px 16px;
+        margin: 0 5px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease-in-out;
+    }
+
+    .custom-button:hover {
+        background-color: #e64a19;
+    }
+
+    @media (max-width: 768px) {
+        .video-js {
+            width: 100%;
+            height: auto;
+        }
+    }
+</style>
+
+{% for video in videos %}
+    {% if video.hls_ready %}
+    <div class="video-container">
+        <video id="video_{{ video.id }}" class="video-js vjs-default-skin" controls preload="auto">
+            <source src="{{ video.get_hls_url }}" type="application/x-mpegURL">
+        </video>
+        <div class="custom-controls">
+            <button class="custom-button" onclick="skipBackward('video_{{ video.id }}')">« 10s</button>
+            <button class="custom-button" onclick="skipForward('video_{{ video.id }}')">10s »</button>
+        </div>
+    </div>
+
+    <script>
+        var player = videojs('video_{{ video.id }}', {
+            plugins: {
+                hotkeys: {
+                    volumeStep: 0.1,
+                    seekStep: 10,
+                    enableModifiersForNumbers: false,
+                }
+            }
+        });
+
+        function skipBackward(videoId) {
+            var player = videojs(videoId);
+            player.currentTime(player.currentTime() - 10); // Skip 10 seconds backward
+        }
+
+        function skipForward(videoId) {
+            var player = videojs(videoId);
+            player.currentTime(player.currentTime() + 10); // Skip 10 seconds forward
+        }
+    </script>
+    {% endif %}
+{% endfor %}
