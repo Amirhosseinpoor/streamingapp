@@ -1,0 +1,144 @@
+# Python files
+*.py[cod]
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.pyenv
+*.venv/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django-specific
+db.sqlite3
+*.log
+*.pot
+*.pyc
+*.mo
+*.migrations/
+staticfiles/
+media/
+local_settings.py
+
+# Environment variables
+.env
+*.env
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*.bak
+*.tmp
+*.~*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.trash/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtualenv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Test-related
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+
+# Profiling data
+*.prof
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Sphinx documentation
+docs/_build/
+target/
+
+# Logs
+*.log
+*.out
+*.err
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.orig
+*.old
+*.swp
+*.swo
+*.log.*
+
+# Other
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
