@@ -3,14 +3,11 @@ import cv2 as cv
 import time
 import subprocess
 import numpy as np
-import random
 from PIL import Image
-import torch
 from celery import shared_task
-from .models import VideoModels
 from ultralytics import YOLO
 
-# ---- کد اصلی (ترکیبی) ----
+
 
 MODELS = ["YoloV8+151","Yolov8","Yolob8-Tip","GENERAL","12Class","9Class"]
 YOLO_V8_151_INDEX = 0
@@ -44,7 +41,6 @@ class VideoSegmenter:
         self.cap = cv.VideoCapture(self.pathToVideo)
 
     def segment(self, frame):
-        """متد پایه؛ توسط ساب‌کلاس‌ها بازنویسی می‌شود."""
         return frame, [], 0, 0
 
     def segmentVideo(self):
@@ -69,7 +65,6 @@ class VideoSegmenter:
                 else:
                     frame_objects[name].append({"Mask": mask, "Center": center})
 
-            # Draw lines/circles
             for key, objs in frame_objects.items():
                 prev_center = None
                 for obj in objs:
@@ -82,7 +77,7 @@ class VideoSegmenter:
                     prev_center = c_tuple
 
             self.saver.saveFrame(image)
-            # ادغام در دیکشنری کلی
+
             for k, v in frame_objects.items():
                 if k not in video_object_dict:
                     video_object_dict[k] = v
@@ -144,7 +139,6 @@ class YoloV8Segmenter(VideoSegmenter):
         processTime = time.time()
         return image, data, (processTime - startTime), (modelTime - startTime)
 
-# ---- Celery Task با ترکیب کد دوم ----
 
 @shared_task
 def convert_to_hls(video_id):
@@ -161,20 +155,16 @@ def convert_to_hls(video_id):
     temp_output_path = os.path.join(output_dir, "processed_video.avi")
     hls_output_path = os.path.join(output_dir, "output.m3u8")
 
-    # ساخت شی ذخیره و ساب‌کلاس YOLO برای سگمنت
     saver = VideoSaver(temp_output_path)
-    model = YOLO("server/best+151.pt")  # مسیر به مدل موردنظر
+    model = YOLO("server/best+151.pt")
     segmenter = YoloV8Segmenter(input_file, model, saver)
 
-    # انجام segmentation برروی ویدیو
     segmenter.segmentVideo()
     print("amir")
 
-    # تبدیل به HLS
     command = f"ffmpeg -i {temp_output_path} -hls_time 10 -hls_playlist_type vod {hls_output_path}"
     subprocess.run(command, shell=True)
 
-    # آپدیت مدل در دیتابیس
     video.hls_ready = True
     video.save()
 
