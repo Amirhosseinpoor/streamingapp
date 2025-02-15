@@ -86,7 +86,7 @@
         <video id="video_{{ video.id }}" class="video-js vjs-default-skin" controls preload="auto">
             <source src="{{ video.get_hls_url }}" type="application/x-mpegURL">
         </video>
-        <div class="custom-controls">
+        <div class= "custom-controls">
             <button class="custom-button" onclick="skipBackward('video_{{ video.id }}')">« 10s</button>
             <button class="custom-button" onclick="skipForward('video_{{ video.id }}')">10s »</button>
         </div>
