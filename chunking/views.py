@@ -18,7 +18,10 @@ class UploadView(CreateView):
     success_url = 'show'
 
     def form_valid(self, form):
-        video = form.save()
+        video = form.save(commit=False)
+        video.start_time = int(self.request.POST.get('start_time'))
+        video.end_time = int(self.request.POST.get('end_time'))
+        video.save()
         convert_to_hls.delay(video.id)
         return super().form_valid(form)
 

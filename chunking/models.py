@@ -8,7 +8,8 @@ class VideoModels(models.Model):
     hls_ready = models.BooleanField(default=False)
 
     upload_time = models.DateTimeField(default=now, verbose_name="Upload Time")
-
+    start_time = models.IntegerField(default=0, verbose_name="Start Time")
+    end_time = models.IntegerField(default=0, verbose_name="End Time")
     def __str__(self):
         return self.title
 
