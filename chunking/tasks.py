@@ -24,7 +24,7 @@ class VideoSaver:
 
 
 class VideoSegmenter:
-    def __init__(self, path, videoSaver, start_detection, end_detection) -> None:
+    def __init__(self, path, videoSaver, start_detection, end_detection):
         self.pathToVideo = path
         self.saver = videoSaver
         self.cap = cv.VideoCapture(self.pathToVideo)
@@ -40,7 +40,7 @@ class VideoSegmenter:
         frame_count = 0
         total_frames = int(self.cap.get(cv.CAP_PROP_FRAME_COUNT))
         print(f"FPS: {self.fps}, Duration: {total_frames / self.fps} sec")
-
+        total_start_time = time.time()
         while self.cap.isOpened():
             ret, rawImage = self.cap.read()
             if not ret:
@@ -50,7 +50,6 @@ class VideoSegmenter:
             print(f"Frame {frame_count}/{total_frames}: Time {current_time}s")
 
             if self.start_detection <= current_time <= self.end_detection:
-                print("Detection Running...")
                 image, data, processTime, modelTime = self.segment(rawImage)
             else:
                 image, data = rawImage, []
@@ -75,7 +74,8 @@ class VideoSegmenter:
                     video_object_dict[k].extend(v)
 
             frame_count += 1
-
+        total_time = time.time() - total_start_time
+        print(f"Total Process Time: {total_time:.2f}s")
         self.cap.release()
         self.saver.end()
         return video_object_dict
@@ -122,6 +122,7 @@ class YoloV8Segmenter(VideoSegmenter):
                         })
 
         processTime = time.time()
+
         return image, data, (processTime - startTime), (modelTime - startTime)
 
 @shared_task
@@ -143,13 +144,13 @@ def convert_to_hls(video_id):
     fps = int(cap.get(cv.CAP_PROP_FPS)) if cap.isOpened() else 10
     cap.release()
 
-    saver = VideoSaver(temp_output_path, fps)
-    model = YOLO("server/best+151.pt")
-    segmenter = YoloV8Segmenter(input_file, model, saver, video.start_time, video.end_time)
+    saver = VideoSaver(path=temp_output_path, fps=fps)
+    model = YOLO("server/bestIman.pt")
+    segmenter = YoloV8Segmenter(path=input_file, model=model, videoSaver=saver, start_detection=video.start_time, end_detection=video.end_time)
 
     segmenter.segmentVideo()
 
-    command = f"ffmpeg -y -i {temp_output_path} -c:v libx264 -preset fast -crf 22 -hls_time 10 -hls_playlist_type vod -f hls {hls_output_path}"
+    command = f"ffmpeg -i {temp_output_path}  -hls_time 10 -hls_playlist_type vod {hls_output_path}"
     subprocess.run(command, shell=True, check=True)
 
     video.hls_ready = True
