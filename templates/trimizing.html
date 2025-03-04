@@ -3,77 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trimizing Video</title>
+    <title>Video Trimmer</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #181818;
+            font-family: 'Poppins', sans-serif;
+            background-color: #1e1e1e;
             color: white;
             text-align: center;
             padding: 20px;
         }
         .container {
-            max-width: 700px;
+            max-width: 900px;
             margin: auto;
-            background: #222;
+            background: #292929;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
         }
         video {
             width: 100%;
             border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
-        .trim-controls {
-            margin-top: 20px;
-        }
-        label {
-            font-size: 16px;
-            display: block;
-            margin: 10px 0 5px;
-        }
-        input[type="number"] {
+        .timeline-container {
+            position: relative;
             width: 100%;
-            padding: 10px;
+            height: 100px;
+            background: #2c2c2c;
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: inset 0px 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .frame {
+            width: 60px;
+            height: 90px;
+            display: inline-block;
+            margin: 0 2px;
+            background: #444;
+            border-radius: 4px;
+            object-fit: cover;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .slider-container {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            height: 100%;
+        }
+        .slider {
+            position: absolute;
+            width: 14px;
+            height: 100%;
+            background: #ff9800;
+            cursor: ew-resize;
+            border-radius: 7px;
+            box-shadow: 0px 2px 6px rgba(255, 152, 0, 0.7);
+        }
+        .progress-bar {
+            position: absolute;
+            height: 100%;
+            background: rgba(255, 152, 0, 0.2);
             border-radius: 5px;
-            border: 1px solid #ddd;
-            background-color: #333;
-            color: white;
+        }
+        .trim-info {
+            margin-top: 15px;
+            font-size: 16px;
+            font-weight: bold;
         }
         button {
             margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #ff5722;
+            padding: 12px 24px;
+            background-color: #ff9800;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             color: white;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
+            transition: background 0.3s ease;
+            box-shadow: 0px 4px 10px rgba(255, 152, 0, 0.3);
         }
         button:hover {
-            background-color: #e64a19;
+            background-color: #e68900;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Last Uploaded Video</h1>
+        <h1>Trim Video</h1>
         {% if video %}
             <video id="video" controls>
                 <source src="{{ video.video_file.url }}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
-            <p>Title: {{ video.title }}</p>
-            <p>Uploaded at: {{ video.upload_time }}</p>
-
-            <div class="trim-controls">
-                <label for="start_time">Start Time (seconds):</label>
-                <input type="number" id="start_time" min="0" value="0">
-
-                <label for="end_time">End Time (seconds):</label>
-                <input type="number" id="end_time" min="0" value="0">
-
-                <button onclick="trimVideo()">Trim Video</button>
+            <div class="timeline-container" id="timeline">
+                <div class="progress-bar" id="progress_bar"></div>
+                <div class="slider-container">
+                    <div class="slider" id="start_slider"></div>
+                    <div class="slider" id="end_slider"></div>
+                </div>
+            </div>
+            <div class="trim-info">
+                <p>Trim from: <span id="start_display">0.00</span>s to <span id="end_display">0.00</span>s</p>
+                <button onclick="trimVideo({{ video.id }})">Trim Video</button>
             </div>
         {% else %}
             <p>No video available.</p>
@@ -81,16 +117,134 @@
     </div>
 
     <script>
-        function trimVideo() {
-            const startTime = document.getElementById('start_time').value;
-            const endTime = document.getElementById('end_time').value;
-            if (startTime >= endTime || startTime < 0) {
-                alert("Please enter valid start and end times.");
-                return;
-            }
-            alert(`Trim Video from ${startTime}s to ${endTime}s`);
-            // You can add AJAX call to send start_time and end_time to the backend
+        const video = document.getElementById('video');
+        const timeline = document.getElementById('timeline');
+        const startSlider = document.getElementById('start_slider');
+        const endSlider = document.getElementById('end_slider');
+        const progressBar = document.getElementById('progress_bar');
+        const startDisplay = document.getElementById('start_display');
+        const endDisplay = document.getElementById('end_display');
+
+        let duration = 0;
+        let startTime = 0;
+        let endTime = 0;
+        let isDragging = false;
+        let activeSlider = null;
+
+        video.addEventListener("loadedmetadata", function () {
+            duration = video.duration;
+            endTime = duration;
+            updateTrimInfo();
+            generateThumbnails();
+        });
+
+        function updateTrimInfo() {
+            startDisplay.innerText = startTime.toFixed(2);
+            endDisplay.innerText = endTime.toFixed(2);
         }
+
+        async function generateThumbnails() {
+            const frameCount = 10;
+            for (let i = 0; i < frameCount; i++) {
+                let img = document.createElement("img");
+                img.classList.add("frame");
+                img.src = await captureFrame((i * duration) / frameCount);
+                timeline.appendChild(img);
+            }
+        }
+
+        function captureFrame(time) {
+            return new Promise(resolve => {
+                video.currentTime = time;
+                video.addEventListener("seeked", () => {
+                    let canvas = document.createElement("canvas");
+                    let ctx = canvas.getContext("2d");
+                    canvas.width = 60;
+                    canvas.height = 90;
+                    ctx.drawImage(video, 0, 0, 60, 90);
+                    resolve(canvas.toDataURL());
+                }, {once: true});
+            });
+        }
+
+        function updateSliderPosition(slider, value) {
+            slider.style.left = `${(value / duration) * 100}%`;
+            video.currentTime = value;
+            updateProgressBar();
+            updateTrimInfo();
+        }
+
+        function updateProgressBar() {
+            progressBar.style.left = `${(startTime / duration) * 100}%`;
+            progressBar.style.width = `${((endTime - startTime) / duration) * 100}%`;
+        }
+
+        startSlider.addEventListener("mousedown", (e) => startDrag(e, "start"));
+        endSlider.addEventListener("mousedown", (e) => startDrag(e, "end"));
+
+        function startDrag(event, type) {
+            isDragging = true;
+            activeSlider = type;
+            document.addEventListener("mousemove", handleDrag);
+            document.addEventListener("mouseup", stopDrag);
+        }
+
+        function handleDrag(event) {
+            if (!isDragging) return;
+            const rect = timeline.getBoundingClientRect();
+            let percent = ((event.clientX - rect.left) / rect.width) * 100;
+            let time = (percent / 100) * duration;
+
+            if (activeSlider === "start" && time < endTime) startTime = time;
+            if (activeSlider === "end" && time > startTime) endTime = time;
+
+            updateSliderPosition(activeSlider === "start" ? startSlider : endSlider, time);
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            activeSlider = null;
+            document.removeEventListener("mousemove", handleDrag);
+            document.removeEventListener("mouseup", stopDrag);
+        }
+
+            function trimVideo(videoId) {
+            // اطمینان از اینکه مقدار صحیحی ارسال می‌شود
+            const start_time = Math.floor(startTime);
+            const end_time = Math.floor(endTime);
+
+            console.log(`Trimming video from ${start_time}s to ${end_time}s`); // دیباگ مقدار قبل از ارسال
+
+            fetch(`/trim-video/${videoId}/`, {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": getCSRFToken()
+        },
+            body: `start_time=${start_time}&end_time=${end_time}`
+        })
+            .then(response => response.json())
+            .then(data => {
+            if (data.error) {
+            alert(`Error: ${data.error}`);
+        } else {
+
+            window.location.href = "/show/";  // انتقال به صفحه نمایش ویدیو بعد از موفقیت
+        }
+        })
+            .catch(error => {
+            console.error("❌ Error:", error);
+            alert("❌ An error occurred while trimming the video.");
+        });
+        }
+
+            function getCSRFToken() {
+            return document.cookie.split("; ")
+            .find(row => row.startsWith("csrftoken"))
+            ?.split("=")[1];
+        }
+
+
     </script>
 </body>
 </html>
