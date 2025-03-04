@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.views.generic import ListView, CreateView
+from django.views.generic import ListView, CreateView, TemplateView
 from .models import VideoModels
 from .forms import VideoForm
 from .tasks import convert_to_hls
@@ -15,15 +15,28 @@ class UploadView(CreateView):
     model = VideoModels
     form_class = VideoForm
     template_name = 'upload.html'
-    success_url = 'show'
-
+    success_url = 'triming'
     def form_valid(self, form):
         video = form.save(commit=False)
-        video.start_time = int(self.request.POST.get('start_time'))
-        video.end_time = int(self.request.POST.get('end_time'))
         video.save()
-        convert_to_hls.delay(video.id)
-        return super().form_valid(form)
+        return super(UploadView, self).form_valid(form)
+
+
+
+
+
+class TrimingView(TemplateView):
+    template_name = 'trimizing.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['video'] = VideoModels.objects.last()  # دریافت آخرین ویدیو
+        return context
+
+
+
+
+
 
 
 from django.shortcuts import render

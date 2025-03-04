@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trimizing Video</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #181818;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+        }
+        video {
+            width: 100%;
+            border-radius: 10px;
+        }
+        .trim-controls {
+            margin-top: 20px;
+        }
+        label {
+            font-size: 16px;
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: #333;
+            color: white;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #ff5722;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e64a19;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Last Uploaded Video</h1>
+        {% if video %}
+            <video id="video" controls>
+                <source src="{{ video.video_file.url }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <p>Title: {{ video.title }}</p>
+            <p>Uploaded at: {{ video.upload_time }}</p>
+
+            <div class="trim-controls">
+                <label for="start_time">Start Time (seconds):</label>
+                <input type="number" id="start_time" min="0" value="0">
+
+                <label for="end_time">End Time (seconds):</label>
+                <input type="number" id="end_time" min="0" value="0">
+
+                <button onclick="trimVideo()">Trim Video</button>
+            </div>
+        {% else %}
+            <p>No video available.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function trimVideo() {
+            const startTime = document.getElementById('start_time').value;
+            const endTime = document.getElementById('end_time').value;
+            if (startTime >= endTime || startTime < 0) {
+                alert("Please enter valid start and end times.");
+                return;
+            }
+            alert(`Trim Video from ${startTime}s to ${endTime}s`);
+            // You can add AJAX call to send start_time and end_time to the backend
+        }
+    </script>
+</body>
+</html>
