@@ -12,7 +12,7 @@ class VideoForm(ModelForm):
 
 class VideoTrimingForm(ModelForm):
     start_time = forms.IntegerField(min_value=0, required=True, help_text="Start time in seconds")
-    end_time = forms.IntegerField(min_value=0, required=True, help_text="End time in seconds")
+    end_time = forms.IntegerField(min_value=1, required=True, help_text="End time in seconds")
     class Meta:
         model = VideoModels
         fields = ['start_time', 'end_time']

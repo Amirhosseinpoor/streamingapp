@@ -125,6 +125,7 @@ class YoloV8Segmenter(VideoSegmenter):
 
         return image, data, (processTime - startTime), (modelTime - startTime)
 
+
 @shared_task
 def convert_to_hls(video_id):
     from .models import VideoModels
@@ -146,7 +147,8 @@ def convert_to_hls(video_id):
 
     saver = VideoSaver(path=temp_output_path, fps=fps)
     model = YOLO("server/bestIman.pt")
-    segmenter = YoloV8Segmenter(path=input_file, model=model, videoSaver=saver, start_detection=video.start_time, end_detection=video.end_time)
+    segmenter = YoloV8Segmenter(path=input_file, model=model, videoSaver=saver, start_detection=video.start_time,
+                                end_detection=video.end_time)
 
     segmenter.segmentVideo()
 

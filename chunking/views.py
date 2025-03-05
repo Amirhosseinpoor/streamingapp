@@ -27,12 +27,11 @@ class TrimingView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['video'] = VideoModels.objects.last()  # آخرین ویدیو را برای نمایش ارسال می‌کنیم
+        context['video'] = VideoModels.objects.last()
         return context
 
 
 def trim_video(request, video_id):
-    """ این ویو یک ویدیو را دریافت کرده و آن را برش می‌دهد """
     if request.method == "POST":
         video = get_object_or_404(VideoModels, id=video_id)
         start_time = int(request.POST.get("start_time", 0))
@@ -45,7 +44,7 @@ def trim_video(request, video_id):
         video.end_time = end_time
         video.save()
 
-        convert_to_hls.delay(video.id)  # ارسال تسک به Celery
+        convert_to_hls.delay(video.id)
         return JsonResponse({"message": "Video trimming started successfully!"}, status=200)
 
     return JsonResponse({"error": "Invalid request"}, status=400)
