@@ -16,4 +16,8 @@ class VideoModels(models.Model):
     def get_hls_url(self):
         return f"/media/videos/output/{self.title}/output.m3u8"
 
+
+
+
+
 # Create your models here.

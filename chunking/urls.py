@@ -8,6 +8,5 @@ urlpatterns = [
     path('pwa/', TemplateView.as_view(template_name='pwa/index.html'), name='pwa'),
     path('triming/', TrimingView.as_view(), name='triming'),
 
-    # مسیر برای API برش ویدیو
     path('trim-video/<int:video_id>/', trim_video, name='trim_video'),
 ]
