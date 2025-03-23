@@ -9,4 +9,5 @@ urlpatterns = [
     path('triming/', TrimingView.as_view(), name='triming'),
 
     path('trim-video/<int:video_id>/', trim_video, name='trim_video'),
+
 ]

@@ -48,3 +48,4 @@ def trim_video(request, video_id):
         return JsonResponse({"message": "Video trimming started successfully!"}, status=200)
 
     return JsonResponse({"error": "Invalid request"}, status=400)
+

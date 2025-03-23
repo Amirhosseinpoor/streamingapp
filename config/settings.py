@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'chunking',
     "corsheaders",
+    'rop'
 ]
 
 MIDDLEWARE = [
@@ -82,10 +83,16 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'aras',
+        'USER': 'amir',
+        'PASSWORD': 'amithpk1818',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -136,3 +143,4 @@ ATA_UPLOAD_MAX_MEMORY_SIZE = 5368709120
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5368709120
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
