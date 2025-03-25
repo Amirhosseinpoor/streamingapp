@@ -146,7 +146,7 @@ def convert_to_hls(video_id):
     cap.release()
 
     saver = VideoSaver(path=temp_output_path, fps=fps)
-    model = YOLO("server/bestIman.pt")
+    model = YOLO("models/bestIman.pt")
     segmenter = YoloV8Segmenter(path=input_file, model=model, videoSaver=saver, start_detection=video.start_time,
                                 end_detection=video.end_time)
 
