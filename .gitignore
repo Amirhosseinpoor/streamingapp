@@ -1,10 +1,12 @@
-# Python files
+# Python
 *.py[cod]
-__pycache__/
 *.pyo
 *.pyd
+*.pyc
+__pycache__/
 .Python
-*.pyenv
+
+# Virtual environments
 *.venv/
 .venv/
 env/
@@ -12,61 +14,51 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-*.pyc
-__pycache__/
 
-# Django-specific
-db.sqlite3
+# Django
 *.log
 *.pot
-*.pyc
 *.mo
+*.pyc
 *.migrations/
-staticfiles/
-media/
+*.sqlite3
+db.sqlite3
 local_settings.py
+media/
+staticfiles/
 
-# Environment variables
+# Environment files
 .env
 *.env
 
-# IDEs and Editors
-.idea/
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# VSCode / Editors
 .vscode/
+.idea/
 *.sublime-project
 *.sublime-workspace
-*.swp
-*.swo
-*.bak
-*.tmp
-*.~*
 
-# macOS
+# OS-generated files
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-
-# Linux
 .trash/
 
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-
-# Distribution / packaging
-.Python
+# Build / packaging
 build/
-develop-eggs/
 dist/
 downloads/
-eggs/
+*.egg-info/
 .eggs/
+*.egg
+MANIFEST
+develop-eggs/
 lib/
 lib64/
 parts/
@@ -74,73 +66,84 @@ sdist/
 var/
 wheels/
 share/python-wheels/
-*.egg-info/
 .installed.cfg
-*.egg
-MANIFEST
 
-# Virtualenv
-pip-log.txt
-pip-delete-this-directory.txt
+# YOLO / AI models & weights
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.weights
+runs/
+inference/output/
+checkpoints/
+models/
+results/
+*.engine
 
-# Test-related
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
+# TensorFlow / PyTorch cache
+__pycache__/
+*.pb
+*.h5
+*.ckpt
+*.npz
+*.npz.*
+*.npy
+*.npy.*
 
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# Dataset cache & folders
+dataset/
+datasets/
+data/
+*.zip
+*.tar
+*.gz
+*.rar
 
-# Pyre
-.pyre/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Coverage reports
-htmlcov/
-.coverage
-.coverage.*
-.cache
-
-# Profiling data
-*.prof
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Sphinx documentation
-docs/_build/
-target/
-
-# Logs
+# Logs / Outputs
 *.log
+*.log.*
 *.out
 *.err
-
-# Temporary files
 *.tmp
 *.temp
 
-# Backup files
-*.bak
-*.orig
-*.old
-*.swp
-*.swo
-*.log.*
+# Coverage / Test / Profiling
+.coverage
+.coverage.*
+.cache
+*.cover
+coverage.xml
+htmlcov/
+.pytest_cache/
+.hypothesis/
+*.prof
 
-# Other
+# Mypy / Pyre / Type Checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# PyInstaller
+*.spec
+*.manifest
+
+# Node (if exists in fullstack)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Docker (optional)
+*.pid
+*.sock
+docker-compose.override.yml
+
+# Backup & Temp
+*.bak
+*.old
+*.orig
+*.swp
+*.swo
+*.~*
