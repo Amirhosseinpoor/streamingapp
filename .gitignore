@@ -177,3 +177,4 @@ server/db.sqlite3
 *.pyc
 *.pyc
 /server/.venv
+venv/
