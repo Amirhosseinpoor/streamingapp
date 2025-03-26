@@ -178,3 +178,5 @@ server/db.sqlite3
 *.pyc
 /server/.venv
 venv/
+server/*.pt
+server/*.pth
