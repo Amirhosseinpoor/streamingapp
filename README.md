@@ -1,4 +1,3 @@
-Got it 👍 — here’s the **shortened README** with the **pictures included** (kept minimal, only the essentials + visuals).
 
 ---
 
@@ -83,6 +82,4 @@ celery -A <project> worker -l info
 * [ ] `MEDIA_ROOT` writable
 * [ ] `.m3u8` + `.ts` generated and playable
 
----
 
-Do you also want me to **add a GIF/video preview of the HLS playback** in the README (so users can see it working in motion)?
