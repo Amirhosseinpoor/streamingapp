@@ -1,93 +1,341 @@
-# streamingapp
+# VideoFair – YOLOv8-powered Video Segmentation → HLS Pipeline (Django + Celery)
 
+A production-ready Django app that lets users upload a video, select a time window, run **instance segmentation** with **Ultralytics YOLOv8** only within that window, burn visualizations into the frames, and export an **HLS (HTTP Live Streaming)** playlist (`.m3u8` + `.ts`) via `ffmpeg`. Heavy work is offloaded to **Celery** workers.
 
+---
 
-## Getting started
+## ✨ Features
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+* **Upload → Trim → Process → Stream** end-to-end flow
+* **Time-windowed inference:** run detection only between `start_time` and `end_time`
+* **YOLOv8 segmentation:** masks, boxes, centers, names; rendered on frames
+* **HLS output:** VOD playlist (`output.m3u8`) with ~10s segments
+* **Background jobs:** Celery task queues
+* **Progress logging:** FPS, duration, frame counter, per-video total time
+* **Extensible:** swap models, change codecs, alter post-processing easily
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## 🧠 How it works (at a glance)
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/aras425547/streamingapp.git
-git branch -M main
-git push -uf origin main
+User Uploads Video ──▶ /upload  ──▶ Save VideoModels instance
+                                   │
+                                   ▼
+                          /trim_video (POST)
+                   set start_time / end_time
+                                   │
+                                   ▼
+                        Celery Task convert_to_hls()
+            ┌──────────────────────────────────────────────────────────┐
+            │ 1) OpenCV reads frames                                   │
+            │ 2) Only within [start_time, end_time]:                   │
+            │    - YOLOv8 segmentation                                 │
+            │    - r.plot() overlay (masks/boxes)                      │
+            │ 3) Frames written with VideoSaver → processed_video.avi  │
+            │ 4) ffmpeg → HLS: output.m3u8 + segments                  │
+            │ 5) Mark video.hls_ready = True                           │
+            └──────────────────────────────────────────────────────────┘
 ```
 
-## Integrate with your tools
+---
 
-- [ ] [Set up project integrations](https://gitlab.com/aras425547/streamingapp/-/settings/integrations)
+## 🧱 Project structure (relevant bits)
 
-## Collaborate with your team
+```
+your_django_app/
+├─ models.py               # VideoModels (title, video_file, start_time, end_time, hls_ready, ...)
+├─ forms.py                # VideoForm, VideoTrimingForm
+├─ tasks.py                # Celery task: convert_to_hls
+├─ views.py                # UploadView, TrimingView, trim_video, VideoListView
+├─ templates/
+│  ├─ upload.html
+│  ├─ trimizing.html       # (typo in name kept intentionally to match code)
+│  └─ videofair.html
+├─ models/                 # Folder holding YOLO model weights (e.g., bestIman.pt)
+└─ ...
+```
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+---
 
-## Test and Deploy
+## 🔧 Requirements
 
-Use the built-in continuous integration in GitLab.
+* **Python** 3.9–3.12 (test with your env; OpenCV wheels vary)
+* **Django** 4.x or 5.x
+* **Celery** 5.x
+* **Redis** or **RabbitMQ** as broker (example uses Redis)
+* **FFmpeg** (system install; required for HLS)
+* **OpenCV** (cv2)
+* **Ultralytics** (YOLOv8)
+* **Pillow**, **NumPy**
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+Example `requirements.txt`:
 
-***
+```txt
+Django>=4.2,<6
+celery>=5.3
+redis>=5.0
+ultralytics>=8.0.0
+opencv-python>=4.9.0
+Pillow>=10.0.0
+numpy>=1.24.0
+```
 
-# Editing this README
+> **FFmpeg install:**
+>
+> * macOS: `brew install ffmpeg`
+> * Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y ffmpeg`
+> * Windows: download FFmpeg build and add to PATH.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+---
 
-## Suggestions for a good README
+## ⚙️ Configuration
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Environment variables you’ll likely need:
 
-## Name
-Choose a self-explaining name for your project.
+| Variable                | Example                                | Purpose                        |
+| ----------------------- | -------------------------------------- | ------------------------------ |
+| `DJANGO_SECRET_KEY`     | `super-secret`                         | Django secret key              |
+| `DEBUG`                 | `True` / `False`                       | Django debug                   |
+| `DATABASE_URL`          | `sqlite:///db.sqlite3` or Postgres URL | DB                             |
+| `CELERY_BROKER_URL`     | `redis://localhost:6379/0`             | Celery broker                  |
+| `CELERY_RESULT_BACKEND` | `redis://localhost:6379/1`             | Celery backend                 |
+| `MEDIA_ROOT`            | `/path/to/media`                       | File storage                   |
+| `YOLO_MODEL_PATH`       | `models/bestIman.pt`                   | Weights path (align with code) |
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+> The code uses a hardcoded path: `YOLO("models/bestIman.pt")`.
+> You can swap this for an env-driven path in `convert_to_hls` if desired.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Make sure your Django `settings.py` sets `MEDIA_ROOT` / `MEDIA_URL` appropriately and your web server can serve the HLS output directory.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+---
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## ▶️ Quickstart
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+1. **Clone & install deps**
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+git clone <your-repo-url>
+cd <your-repo>
+python -m venv .venv && source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+2. **Install FFmpeg**
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+See the section above for your OS.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+3. **Run migrations & create superuser**
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```bash
+python manage.py migrate
+python manage.py createsuperuser
+```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+4. **Start Redis** (or your chosen broker)
 
-## License
-For open source projects, say how it is licensed.
+```bash
+# macOS (brew):
+brew services start redis
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+# Ubuntu/Debian:
+sudo apt-get install -y redis-server
+sudo systemctl enable --now redis-server
+```
+
+5. **Run Django + Celery**
+
+In one terminal:
+
+```bash
+python manage.py runserver
+```
+
+In a second terminal:
+
+```bash
+celery -A your_project_name worker -l info
+```
+
+> Replace `your_project_name` with the Django settings module’s project (the one that has `celery.py` if you have a standard layout). If you haven’t set up a `celery.py`, you can start Celery with `celery -A your_project_name worker --pool=solo -l info` during development.
+
+---
+
+## 🧭 User flow
+
+1. **Upload**: open `/upload` (`UploadView`, template `upload.html`) and submit a video and title.
+   A `VideoModels` row is created with your file (stored in `MEDIA_ROOT`).
+
+2. **Trim**: open the trimming page (success_url `'triming'` → template `trimizing.html`).
+   Choose **start** and **end** seconds and submit (POST to `trim_video`).
+
+3. **Process (async)**: the server enqueues `convert_to_hls(video.id)` with Celery.
+   Worker:
+
+   * Reads video FPS (defaults to `10` if unknown).
+   * Writes a temp processed `AVI` (`processed_video.avi`) via `VideoSaver` (XVID codec).
+   * Runs YOLOv8 segmentation only within your time window.
+   * Calls `ffmpeg -hls_time 10 -hls_playlist_type vod` → `output.m3u8` in an `output/<video_title_safe>` folder.
+   * Sets `video.hls_ready = True`.
+
+4. **Watch**: serve the HLS directory over HTTP (e.g., Nginx/Apache/WhiteNoise for dev) and play `output.m3u8` with an HLS-capable player (hls.js, Safari, VLC).
+
+---
+## Loading Screen
+
+![Loading Page](docs/assets/loading.png)
+
+## 🧩 Key components (code tour)
+
+### `VideoSaver`
+
+* Wraps `cv.VideoWriter` (XVID) with enforced frame size (default `640×640`).
+* Methods: `saveFrame(frame)`, `end()`.
+
+### `VideoSegmenter` (base)
+
+* Iterates frames, computes `current_time = frame_idx / fps`.
+* Only processes frames when `start_detection ≤ current_time ≤ end_detection`.
+* Aggregates per-frame detections into a `video_object_dict` keyed by class name.
+
+### `YoloV8Segmenter` (inherits `VideoSegmenter`)
+
+* Resizes frames to `640×640` and runs `Ultralytics YOLO` once per frame.
+* Extracts `masks.xy`, `boxes.conf`, `boxes.cls`, `boxes.xyxy`.
+* Renders overlays via `r.plot()` for a user-friendly preview video.
+* Converts class `0` → `"Eye"`, otherwise `"Needle"` (customize this map).
+
+### Celery task: `convert_to_hls(video_id)`
+
+* Loads `VideoModels` row, computes safe output dir name using `video.title`.
+* Creates `processed_video.avi` with overlays and **then** HLS via `ffmpeg`.
+* Updates `video.hls_ready = True`.
+
+### Django views
+
+* `VideoListView` → `videofair.html` lists videos
+* `UploadView` → `upload.html` form to upload a file
+* `TrimingView` → `trimizing.html` (preloads `VideoModels.objects.last()`)
+* `trim_video(request, video_id)` → POST handler to set times and enqueue Celery task. Returns JSON.
+
+---
+
+## 🖥️ Serving the HLS output
+
+**Directory layout per video** (example):
+
+```
+/media/videos/<video_file_dir>/
+└─ output/<video_title_safe>/
+   ├─ processed_video.avi
+   ├─ output.m3u8
+   ├─ output0.ts
+   ├─ output1.ts
+   └─ ...
+```
+
+**Nginx snippet** (example):
+
+```nginx
+location /media/ {
+    alias /path/to/MEDIA_ROOT/;
+    add_header Cache-Control "no-cache";
+    types {
+        application/vnd.apple.mpegurl m3u8;
+        video/mp2t ts;
+    }
+}
+```
+
+Then your player can load:
+`/media/videos/<...>/output/<video_title_safe>/output.m3u8`
+
+---
+
+## 🧪 Testing the trim API quickly
+
+```bash
+curl -X POST http://127.0.0.1:8000/trim_video/123/ \
+  -d "start_time=5" -d "end_time=25" \
+  -H "X-CSRFToken: <token-if-needed>"
+```
+
+Response on success:
+
+```json
+{"message": "Video trimming started successfully!"}
+```
+
+---
+
+## ⚡ Performance & Quality Tips
+
+* **GPU acceleration:** install PyTorch + CUDA and Ultralytics with GPU support to speed up YOLOv8 inference dramatically.
+* **Batching / stride:** For live pipelines, consider frame skipping or downscaling for speed; here we resize to `640×640`.
+* **Codec choice:** `XVID` AVI is widely compatible; for smaller files you can switch to `mp4v` or H.264 (`avc1`) if your FFmpeg/OpenCV build supports it. Adjust:
+
+  ```python
+  fourcc = cv.VideoWriter_fourcc(*"mp4v")  # or "avc1" if available
+  ```
+* **Class map:** The example maps `0 → Eye`, everything else → `Needle`. Update based on your trained model’s `names` metadata (`model.names`).
+* **IO throughput:** Place `MEDIA_ROOT` on fast storage; avoid NFS during heavy workloads.
+
+---
+
+## 🧰 Troubleshooting
+
+* **`FFmpeg not found`**: Ensure `ffmpeg` is installed and on PATH. `ffmpeg -version` should work from the same shell as your Celery worker.
+* **OpenCV FPS is 0**: The code falls back to `10`. If your input uses a rare codec, re-mux with FFmpeg:
+
+  ```bash
+  ffmpeg -i input.mp4 -c copy -map 0 fixed.mp4
+  ```
+* **`Permission denied` writing output**: Check filesystem permissions for the user running Celery/Django.
+* **YOLO weights path wrong**: Ensure `models/bestIman.pt` exists relative to the Django app working directory, or change the path.
+* **Windows path quoting**: Use quotes around paths in the ffmpeg command or build the `subprocess` call as a list:
+
+  ```python
+  subprocess.run(["ffmpeg", "-i", temp_output_path, "-hls_time", "10",
+                  "-hls_playlist_type", "vod", hls_output_path], check=True)
+  ```
+
+---
+
+## 🔐 Security notes
+
+* Validate upload **file types** and **max size** (e.g., via `FileExtensionValidator`, custom cleaning, Nginx limits).
+* Sanitize `video.title` (the code already replaces non-alnum with `_` for output dir).
+* Consider scanning uploads and running FFmpeg in a sandboxed environment for untrusted users.
+
+---
+
+## 🔄 Customization ideas
+
+* Serve HLS via **signed URLs** or put behind auth.
+* Store generated objects (`video_object_dict`) in DB for analytics.
+* Expose **progress** via Celery result backend and WebSocket updates.
+* Add **model selection** per video (dropdown to choose which `.pt` file).
+* Switch to **MP4 + HLS** directly (use `-codec:v libx264 -preset veryfast -crf 23`).
+
+---
+
+## 📜 License & Credits
+
+* Built with **Django**, **Celery**, **Ultralytics YOLOv8**, **OpenCV**, **FFmpeg**.
+* Your project’s license: *(add your license here)*
+* YOLOv8: © Ultralytics – follow their license/terms.
+
+---
+
+## ✅ Definition of Done (checklist)
+
+* [ ] FFmpeg installed and reachable by Celery worker
+* [ ] `models/bestIman.pt` present (or path adjusted)
+* [ ] Broker running (Redis/RabbitMQ)
+* [ ] `MEDIA_ROOT` writable
+* [ ] Upload works, trim POST returns 200
+* [ ] Celery worker logs show frame processing
+* [ ] `output.m3u8` + `.ts` segments generated
+* [ ] HLS playlist plays in browser/VideoJS/hls.js/Safari
+
+
