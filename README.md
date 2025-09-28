@@ -251,7 +251,7 @@ Then your player can load:
 `/media/videos/<...>/output/<video_title_safe>/output.m3u8`
 
 ---
-<video src="docs/assets/final.mp4" controls width="720"></video>
+[▶️ Watch Demo](docs/assets/final.mp4)
 ## 🧪 Testing the trim API quickly
 
 ```bash
